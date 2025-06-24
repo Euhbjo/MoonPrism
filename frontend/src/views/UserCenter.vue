@@ -104,7 +104,11 @@
       <el-tab-pane label="我的评论" name="comments">
         <el-table :data="myComments" style="width: 100%">
           <el-table-column prop="content" label="评论内容" />
-          <el-table-column prop="createTime" label="评论时间" width="180" />
+          <el-table-column prop="createTime" label="评论时间" width="180">
+            <template #default="scope">
+              {{ formatDate(scope.row.createTime) }}
+            </template>
+          </el-table-column>
           <el-table-column label="操作" width="100">
             <template #default="scope">
               <el-button size="small" type="danger" @click="deleteComment(scope.row)">删除</el-button>
@@ -143,6 +147,18 @@ const passwordForm = ref({ oldPassword: '', password: '', confirmPassword: '' })
 const passwordFormRef = ref(null)
 
 const playerStore = usePlayerStore()
+
+function formatDate(timestamp) {
+  const date = new Date(timestamp)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
+}
 
 const validatePass = (rule, value, callback) => {
   if (value === '') {
@@ -320,9 +336,9 @@ function play(song) {
 }
 
 function removeSong(row) {
-  HttpManager.deleteCollection(user.value.id, row.collectionId).then(() => {
+  HttpManager.deleteCollection(user.value.id, row[0].id).then(() => {
     ElMessage.success('已取消收藏')
-    collectedSongs.value = collectedSongs.value.filter(i => i.collectionId !== row.collectionId)
+    collectedSongs.value = collectedSongs.value.filter(i => i[0].id !== row[0].id)
   }).catch(error => {
     console.error('取消收藏失败:', error)
     ElMessage.error('取消收藏失败')
@@ -330,9 +346,9 @@ function removeSong(row) {
 }
 
 function removeList(row) {
-  HttpManager.deleteCollection(user.value.id, row.collectionId).then(() => {
+  HttpManager.deleteCollection(user.value.id, row.id).then(() => {
     ElMessage.success('已取消收藏')
-    collectedLists.value = collectedLists.value.filter(i => i.collectionId !== row.collectionId)
+    collectedLists.value = collectedLists.value.filter(i => i.id !== row.id)
   }).catch(error => {
     console.error('取消收藏失败:', error)
     ElMessage.error('取消收藏失败')

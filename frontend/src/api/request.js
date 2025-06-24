@@ -5,6 +5,10 @@ export function getBaseURL() {
   return 'http://localhost:8888'
 }
 
+export function getBaseSongURL() {
+  return 'https://songsinfo.oss-cn-qingdao.aliyuncs.com/song/'
+}
+
 const service = axios.create({
   baseURL: getBaseURL(),
   timeout: 5000

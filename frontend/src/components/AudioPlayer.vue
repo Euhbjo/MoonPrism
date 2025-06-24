@@ -86,8 +86,9 @@ const currentSong = computed(() => playerStore.currentSong)
 // 监听播放状态变化
 watch(() => playerStore.currentSong, (newSong) => {
   if (newSong) {
-    // 确保URL是完整的
-    const audioUrl = newSong.url.startsWith('http') ? newSong.url : HttpManager.attachImageUrl(newSong.url)
+    // 从URL中提取文件名
+    const fileName = newSong.url.split('/').pop()
+    const audioUrl = `https://songsinfo.oss-cn-qingdao.aliyuncs.com/song/${fileName}`
     audio.value.src = audioUrl
     audio.value.play().then(() => {
       isPlaying.value = true
@@ -111,8 +112,10 @@ function togglePlay() {
     audio.value.pause()
     isPlaying.value = false
   } else {
-    // 确保URL是完整的
-    const audioUrl = currentSong.value.url.startsWith('http') ? currentSong.value.url : HttpManager.attachImageUrl(currentSong.value.url)
+    console.log('currentSong.value',currentSong.value)
+    // 从URL中提取文件名
+    const fileName = currentSong.value.url.split('/').pop()
+    const audioUrl = `https://songsinfo.oss-cn-qingdao.aliyuncs.com/song/${fileName}`
     audio.value.src = audioUrl
     audio.value.play().then(() => {
       isPlaying.value = true
@@ -135,6 +138,7 @@ function next() {
   const currentIndex = playerStore.playlist.findIndex(song => song.id === currentSong.value?.id)
   if (currentIndex < playerStore.playlist.length - 1) {
     playerStore.setCurrentSong(playerStore.playlist[currentIndex + 1])
+    console.log('next',playerStore.currentSong)
   }
 }
 

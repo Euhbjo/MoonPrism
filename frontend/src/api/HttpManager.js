@@ -11,14 +11,18 @@ const HttpManager = {
   getUserOfId: (id) => get(`user/detail?id=${id}`),
   uploadUrl: (userId) => `${getBaseURL()}/user/avatar/update?id=${userId}`,
   getSongList: () => get("songList"),
-  getSongListOfStyle: (style) => get(`songList/style/detail?style=${style}`),
+  getSongListOfStyle: (style) => {
+    const params = new URLSearchParams();
+    params.append('style', style);
+    return get(`songList/style/detail?${params.toString()}`);
+  },
   getSongListOfLikeTitle: (keywords) => get(`songList/likeTitle/detail?title=${keywords}`),
   getSongListOfSongId: (songListId) => get(`listSong/detail?songListId=${songListId}`),
   getAllSinger: () => get("singer"),
   getSingerOfSex: (sex) => get(`singer/sex/detail?sex=${sex}`),
   getCollectionOfUser: (userId) => get(`collection/detail?userId=${userId}`),
   setCollection: ({userId,type,songId,songListId}) => post(`collection/add`,{userId,type,songId,songListId}),
-  deleteCollection: (userId, songId) => deletes(`collection/delete?userId=${userId}&&songId=${songId}`),
+  deleteCollection: (userId, songId) => deletes(`collection/delete?userId=${userId}&songId=${songId}`),
   isCollection: ({userId, type, songId}) => post(`collection/status`, {userId, type, songId}),
   setRank: ({songListId,consumerId,score}) => post(`rankList/add`, {songListId,consumerId,score}),
   getRankOfSongListId: (songListId) => get(`rankList?songListId=${songListId}`),

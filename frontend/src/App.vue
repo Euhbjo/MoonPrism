@@ -52,7 +52,7 @@ const route = useRoute()
 const userStore = useUserStore()
 const playerStore = usePlayerStore()
 const user = computed(() => userStore.user)
-const defaultAvatar = 'https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png'
+const defaultAvatar = 'https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png'
 
 const activeMenu = computed(() => {
   if (route.path.startsWith('/song-list')) return '/song-list'

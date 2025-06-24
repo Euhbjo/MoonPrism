@@ -18,6 +18,9 @@
       <el-table-column label="歌曲名">
         <template #default="scope">
           {{ extractSongTitle(scope.row.name) }}
+          <el-icon v-if="isCurrentSong(scope.row)" class="playing-icon">
+              <VideoPlay />
+            </el-icon>
         </template>
       </el-table-column>
       <el-table-column label="歌手">
@@ -28,7 +31,9 @@
       <el-table-column label="操作">
         <template #default="scope">
           <el-tooltip content="播放" placement="top">
-            <el-button circle size="small" @click="play(scope.row)">
+            <el-button circle size="small" @click="play(scope.row)"
+            :type="isCurrentSong(scope.row) && playerStore.isPlaying ? 'primary' : 'default'">
+            
               <el-icon><VideoPlay /></el-icon>
             </el-button>
           </el-tooltip>
@@ -97,8 +102,9 @@ const songList = ref({})
 const songs = ref([])
 const comments = ref([])
 const commentForm = ref({ content: '' })
-const collectedSongs = ref(new Set()) // 用于存储已收藏的歌曲ID
+const collectedSongs = ref(new Map()) // 用于存储已收藏的歌曲ID和收藏记录ID
 const isListCollected = ref(false) // 用于存储歌单收藏状态
+const listCollectionId = ref(null) // 用于存储歌单收藏记录ID
 
 onMounted(async () => {
   const id = route.params.id
@@ -108,6 +114,7 @@ onMounted(async () => {
   const res2 = await HttpManager.getSongListOfSongId(id)
   for(let i = 0; i < res2.data.length; i++) {
     const song = await HttpManager.getSongOfId(res2.data[i].songId)
+    console.log('song',song)
     songs.value.push(song.data)
   }
   await loadComments()
@@ -170,20 +177,28 @@ async function likeComment(item) {
   await loadComments()
 }
 
+function isCurrentSong(song) {
+  return playerStore.currentSong && playerStore.currentSong.id === song.id
+}
+
 function play(song) {
+  console.log(song)
   if (song.url) {
     const songWithFullUrl = {
       ...song,
       url: HttpManager.attachImageUrl(song.url)
     }
+    console.log('songWithFullUrl',songWithFullUrl)
     playerStore.setCurrentSong(songWithFullUrl)
+    console.log(playerStore.currentSong)
     playerStore.setPlaylist(songs.value.map(s => ({
       ...s,
-      url: HttpManager.attachImageUrl(s.url)
+      // url: HttpManager.attachImageUrl(s.url)
     })))
   } else {
     ElMessage.info('该歌曲暂无音频资源')
   }
+  console.log('playerStore',playerStore.playlist)
 }
 
 // 获取歌曲名
@@ -206,16 +221,17 @@ async function loadCollections() {
     const res = await HttpManager.getCollectionOfUser(userStore.user.id)
     if (res && res.code === 200) {
       const collections = Array.isArray(res.data) ? res.data : []
-      // 将收藏的歌曲ID添加到Set中
+      // 将收藏的歌曲ID和收藏记录ID添加到Map中
       collections
         .filter(item => item.type === 0)
-        .forEach(item => collectedSongs.value.add(item.songId))
+        .forEach(item => collectedSongs.value.set(item.songId, item.id))
       
       // 检查当前歌单是否被收藏
       const listCollection = collections.find(item => 
         item.type === 1 && item.songListId === Number(route.params.id)
       )
       isListCollected.value = !!listCollection
+      listCollectionId.value = listCollection ? listCollection.id : null
     }
   } catch (error) {
     console.error('加载收藏状态失败:', error)
@@ -242,13 +258,15 @@ async function toggleCollect(song) {
       ElMessage.success('已取消收藏')
     } else {
       // 添加收藏
-      await HttpManager.setCollection({
+      const res = await HttpManager.setCollection({
         userId: userStore.user.id,
         type: 0,
         songId: song.id
       })
-      collectedSongs.value.add(song.id)
-      ElMessage.success('已收藏')
+      if (res && res.code === 200) {
+        collectedSongs.value.set(song.id, res.data.id)
+        ElMessage.success('已收藏')
+      }
     }
   } catch (error) {
     console.error('收藏操作失败:', error)
@@ -269,19 +287,18 @@ async function downloadSong(song) {
 
   try {
     song.downloading = true
-    const response = await HttpManager.downloadMusic(song.url)
-    
-    // 创建Blob对象
-    const blob = new Blob([response], { type: 'audio/mpeg' })
+    // 构建OSS URL
+    const fileName = song.url.split('/').pop()
+    const ossUrl = `https://songsinfo.oss-cn-qingdao.aliyuncs.com/song/${fileName}`
     
     // 创建下载链接
-    const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.href = url
+    link.href = ossUrl
+    link.style.display = 'none' // 隐藏链接
     
     // 设置文件名（使用歌曲名作为文件名）
-    const fileName = `${song.name}.mp3`
-    link.setAttribute('download', fileName)
+    const downloadFileName = `${song.name}.mp3`
+    link.setAttribute('download', downloadFileName)
     
     // 触发下载
     document.body.appendChild(link)
@@ -289,9 +306,8 @@ async function downloadSong(song) {
     
     // 清理
     document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
     
-    ElMessage.success('下载成功')
+    ElMessage.success('开始下载')
   } catch (error) {
     console.error('下载失败:', error)
     ElMessage.error('下载失败，请稍后重试')
@@ -341,16 +357,20 @@ async function toggleListCollect() {
       // 取消收藏
       await HttpManager.deleteCollection(userStore.user.id, route.params.id)
       isListCollected.value = false
+      listCollectionId.value = null
       ElMessage.success('已取消收藏')
     } else {
       // 添加收藏
-      await HttpManager.setCollection({
+      const res = await HttpManager.setCollection({
         userId: userStore.user.id,
         type: 1,
         songListId: route.params.id
       })
-      isListCollected.value = true
-      ElMessage.success('已收藏')
+      if (res && res.code === 200) {
+        isListCollected.value = true
+        listCollectionId.value = res.data.id
+        ElMessage.success('已收藏')
+      }
     }
   } catch (error) {
     console.error('收藏操作失败:', error)

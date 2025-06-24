@@ -5,8 +5,7 @@
         <div class="card-header">
           <h2>歌单排行榜</h2>
           <el-radio-group v-model="timeRange" @change="handleTimeRangeChange">
-            <el-radio-button label="week">本周</el-radio-button>
-            <el-radio-button label="month">本月</el-radio-button>
+
             <el-radio-button label="all">总榜</el-radio-button>
           </el-radio-group>
         </div>
@@ -50,10 +49,11 @@
             <el-button size="small" @click="goToDetail(scope.row.id)">查看详情</el-button>
             <el-button 
               size="small" 
-              :type="isCollected(scope.row.id) ? 'danger' : 'primary'"
+              :type="isCollected(scope.row.id) ? 'success' : 'primary'"
               @click="toggleCollect(scope.row)"
+              :disabled="isCollected(scope.row.id)"
             >
-              {{ isCollected(scope.row.id) ? '取消收藏' : '收藏' }}
+              {{ isCollected(scope.row.id) ? '已收藏' : '收藏' }}
             </el-button>
           </template>
         </el-table-column>
